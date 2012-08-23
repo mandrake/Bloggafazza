@@ -41,16 +41,26 @@ class EntriesCollection:
 	
 	@classmethod
 	def create_from_directory(cls, dir):
-		entries = []
+		entries = [[]]
+		page = 0
+		nEntries = 0
+		
 		for filename in os.listdir(dir):
 			if filename.startswith('.'):
 				pass
 			
 			path = os.path.join(dir, filename)
 			
-			try: entries.append(Entry.create_from_path(path))
+			try:
+				entries[page].append(Entry.create_from_path(path))
+				nEntries += 1
 			except FileLayoutError: pass
 		
+			if nEntries == 5:
+				nEntries = 0
+				page += 1
+				entries.append([])
+				
 		return cls(entries)
 
 class Template:
@@ -102,12 +112,15 @@ class SiteBuilder:
 		return entry_string
 	
 	def render_entry_collection(self, collection):
-		entries = list(collection.entries)
-		entries.reverse()
-		rendered = [self.render_entry(entry) for entry in entries]
-		index = self.template.render_page('\n'.join(rendered))
-		path = os.path.join(self.output_dir, 'index.html')
-		write_to_file_in_dir(index, path)
+		page = 0
+		for entryPage in collection.entries:
+			entries = list(entryPage)
+			entries.reverse()
+			rendered = [self.render_entry(entry) for entry in entries]
+			index = self.template.render_page('\n'.join(rendered))
+			path = os.path.join(self.output_dir, '%d/index.html' % page)
+			page += 1
+			write_to_file_in_dir(index, path)
 
 		
 def prepare_output_directory(config):
